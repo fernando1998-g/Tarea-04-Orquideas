@@ -1,0 +1,41 @@
+---
+title: "Tarea 04, registros de presencia de Orquídeas en las Áreas Silvestres Protegidas de Costa Rica"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Carga de las librarias
+
+# Carga de Datos
+
+# Limpieza de Datos
+
+## Paso 1 de la tarea
+
+## Paso 2 de la tarea
+
+## Paso 3 de la tarea
+
+# Preparativos para el mapa
+
+# Mapa Registros de Presencia de Orquídeas por Área Silvestre Protegida
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
