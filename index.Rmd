@@ -9,6 +9,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 # Carga de las librarias
+```{r carga-librerias, message=FALSE, warning=FALSE}
+library(sf)
+library(raster)
+library(spData)
+library(plotly)
+library(DT)
+library(tidyr)
+library(leaflet)
+library(leaflet.extras)
+library(leafem)
+library(dplyr)
+```
+
 
 # Carga de Datos
 
