@@ -6,7 +6,11 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+[codigo fuente](https://github.com/fernando1998-g/Tarea-04-Orquideas)
 
+###### imagen ilustrativa
+![](https://images.unsplash.com/photo-1598797369240-7c78812a0db9?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=750&q=80)  
+[by Fabien BELLANGER](https://unsplash.com/photos/Lp1YCwMza8s)
 
 # Carga de las librarias
 ```{r carga-librerias, message=FALSE, warning=FALSE}
@@ -22,33 +26,130 @@ library(leafem)
 library(dplyr)
 ```
 
-
 # Carga de Datos
+```{r carga-datos, message=FALSE, warning=FALSE}
+# Conjunto Orquideas
+orquideas <-
+  st_read(
+    "https://raw.githubusercontent.com/gf0604-procesamientodatosgeograficos/2021i-datos/main/gbif/orchidaceae-cr-registros.csv",
+    options = c(
+      "X_POSSIBLE_NAMES=decimalLongitude",
+      "Y_POSSIBLE_NAMES=decimalLatitude"
+    ),
+    quiet = TRUE
+  )
+
+# Asignación del sistema de coordenadas
+st_crs(orquideas) = 4326
+
+# Conjunto Areas Silvestres Protegidas
+ASP <-
+  st_read(
+    "https://raw.githubusercontent.com/gf0604-procesamientodatosgeograficos/2021i-datos/main/sinac/asp/asp-wgs84.geojson",
+    quiet = TRUE
+  )
+
+```
 
 # Limpieza de Datos
+```{r asignacion-valor-numerico, message=FALSE, warning=FALSE}
+# Asignandole valor numerico a la columna coorinateUncertintyInMeters y formato de fecha a la columna eventDate
+
+orquideas <-
+orquideas %>%
+  mutate(coordinateUncertaintyInMeters= as.numeric(coordinateUncertaintyInMeters)) %>%
+  mutate(eventDate= as.Date(eventDate, "%Y-%m-%d"))
+
+
+# Visualisando la cantidad inicial de Registros
+cat("Cantidad original de registros: ", nrow(orquideas))
+```
 
 ## Paso 1 de la tarea
+```{r descarte-registros-incertidumbre-alta, message=FALSE, warning=FALSE}
+# Descartando los registros con alta incertidumbre en la ubicación
+orquideas <-
+  orquideas %>%
+  filter(coordinateUncertaintyInMeters <= 1000)
+
+# Visualisando la cantidad final de Registros
+cat("Cantidad de registros después de descartar los de alta incertidumbre en la ubicación: ", nrow(orquideas))
+```
 
 ## Paso 2 de la tarea
+```{r eliminando-espacios-vacios, message=FALSE, warning=FALSE}
+# Visualisando la cantidad inicial de Registros
+cat("Cantidad original de registros: ", nrow(orquideas))
+
+# Eliminando registros N/A(espacios vacios) columna species
+orquideas <- orquideas[!(orquideas$species== ""), ]
+
+# Visualisando la cantidad final de Registros
+cat("Cantidad de registros después de descartar los de alta incertidumbre en la ubicación: ", nrow(orquideas))
+```
 
 ## Paso 3 de la tarea
+```{r eliminando-valores-marinos, message=FALSE, warning=FALSE}
+# Eliminando los registros que tienen como valor "Area Marina de Manejo" o "Area Marina Protegida" de la columna descripcio
+ASP <- ASP[!(ASP$descripcio ==  'Area Marina de Manejo'), ]
+ASP <- ASP[!(ASP$descripcio ==  'Area marina protegida'), ]
+```
 
 # Preparativos para el mapa
+```{r creando-conjunto, message=FALSE, warning=FALSE}
+# Creación de conjunto de datos con la cantidad de registros por Area Silvestre Protegida
+orqui_ASP <-
+  ASP %>%
+  sf::st_make_valid()%>%
+  sf::st_join(orquideas) %>%
+  group_by(nombre_asp) %>%
+  summarize(especies = n_distinct(species, na.rm = TRUE)) 
+
+# Asignandole coordenadas
+st_crs(orqui_ASP) = 4326
+
+```
 
 # Mapa Registros de Presencia de Orquídeas por Área Silvestre Protegida
+```{r mapa, message=FALSE, warning=FALSE, fig.width=9, fig.height=6}
+# Paleta de colores
+colores_registros <-
+  colorNumeric(palette = "YlGnBu",
+               domain = orqui_ASP$especies,
+               na.color = "transparent")
 
+# Mapa Leaflet
+leaflet() %>%
+  addTiles(group = "OSM") %>%
+  addPolygons(
+    data = orqui_ASP,
+    fillColor = ~ colores_registros(orqui_ASP$especies),
+    fillOpacity = 0.7,
+    stroke = TRUE,
+    color = "black",
+    weight = 1,
+    popup = paste(
+      paste(
+        "<strong>ASP:</strong>",
+        orqui_ASP$nombre_asp
+      ),
+      paste(
+        "<strong>Cantidad de registros:</strong>",
+        orqui_ASP$especies
+        
+      ),
+      sep = '<br/>'
+    ),
+    group = "Areas silvestres protegidas - registros", 
+  ) %>%
+  addLayersControl(baseGroups = c("OSM"),
+                   overlayGroups = c("Areas silvestres protegidas - registros")) %>%
+  addLegend(
+    position = "bottomleft",
+    pal = colores_registros,
+    values = orqui_ASP$especies,
+    group = "Areas silvestres protegidas - registros",
+    title = "Cantidad de registros"
+  )
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
